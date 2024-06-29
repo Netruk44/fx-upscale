@@ -305,6 +305,21 @@ public class UpscalingExportSession {
                 
                 if let outputBitRate {
                     compressionProperties[AVVideoAverageBitRateKey as CFString] = outputBitRate
+                } else {
+                    // Automatically calculate bitrate based on input bitrate
+                    let inputBitRate = try await track.load(.estimatedDataRate)
+                    
+                    // Scale bitrate based on resolution
+                    let inputSize = try await track.load(.naturalSize)
+                    let inputResolution = inputSize.width * inputSize.height
+                    let outputResolution = outputSize.width * outputSize.height
+                    let scale = outputResolution / inputResolution
+                    
+                    // Cap to 144 Mbit/s
+                    // (Arbitrarily picked because that's the bitrate of the largest 4k uhd blu-ray)
+                    let outputBitRate = min(Int(Double(inputBitRate) * scale), 144_000_000)
+                    
+                    compressionProperties[AVVideoAverageBitRateKey as CFString] = outputBitRate
                 }
                 
                 if let extensions = formatDescription?.extensions {
