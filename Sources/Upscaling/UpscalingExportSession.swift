@@ -12,6 +12,7 @@ public class UpscalingExportSession {
         preferredOutputURL: URL,
         outputSize: CGSize,
         outputBitRate: Int? = nil,
+        outputBitRateScaleFactor: Double? = nil,
         creator: String? = nil
     ) {
         self.asset = asset
@@ -25,6 +26,7 @@ public class UpscalingExportSession {
         }
         self.outputSize = outputSize
         self.outputBitRate = outputBitRate
+        self.outputBitRateScaleFactor = outputBitRateScaleFactor
         self.creator = creator
         progress = Progress(parent: nil, userInfo: [
             .fileURLKey: outputURL
@@ -45,6 +47,7 @@ public class UpscalingExportSession {
     public let outputURL: URL
     public let outputSize: CGSize
     public let outputBitRate: Int?
+    public let outputBitRateScaleFactor: Double?
     public let creator: String?
 
     public let progress: Progress
@@ -84,7 +87,8 @@ public class UpscalingExportSession {
                     formatDescription: formatDescription,
                     outputSize: outputSize,
                     outputCodec: outputCodec,
-                    outputBitRate: outputBitRate
+                    outputBitRate: outputBitRate,
+                    outputBitRateScaleFactor: outputBitRateScaleFactor
                 ) else { continue }
 
             if assetReader.canAdd(assetReaderOutput) {
@@ -280,7 +284,8 @@ public class UpscalingExportSession {
         formatDescription: CMFormatDescription?,
         outputSize: CGSize,
         outputCodec: AVVideoCodecType?,
-        outputBitRate: Int?
+        outputBitRate: Int?,
+        outputBitRateScaleFactor: Double?
     ) async throws -> AVAssetWriterInput? {
         switch track.mediaType {
         case .video:
@@ -315,11 +320,17 @@ public class UpscalingExportSession {
                     let outputResolution = outputSize.width * outputSize.height
                     let scale = outputResolution / inputResolution
                     
+                    var outputBitRate = Double(inputBitRate) * scale
+                    
+                    if let outputBitRateScaleFactor {
+                        outputBitRate *= outputBitRateScaleFactor
+                    }
+                    
                     // Cap to 144 Mbit/s
                     // (Arbitrarily picked because that's the bitrate of the largest 4k uhd blu-ray)
-                    let outputBitRate = min(Int(Double(inputBitRate) * scale), 144_000_000)
+                    let finalBitRate = min(Int(outputBitRate), 144_000_000)
                     
-                    compressionProperties[AVVideoAverageBitRateKey as CFString] = outputBitRate
+                    compressionProperties[AVVideoAverageBitRateKey as CFString] = finalBitRate
                 }
                 
                 if let extensions = formatDescription?.extensions {

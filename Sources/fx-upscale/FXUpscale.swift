@@ -12,6 +12,7 @@ import Upscaling
     @Option(name: .shortAndLong, help: "The output file width") var width: Int?
     @Option(name: .shortAndLong, help: "The output file height") var height: Int?
     @Option(name: .shortAndLong, help: "The output file bitrate") var bitrate: Int?
+    @Option(name: .long, help: "The scaling factor for the output file bitrate") var bitrateScalingFactor: Double?
 
     mutating func run() async throws {
         guard ["mov", "m4v", "mp4"].contains(url.pathExtension.lowercased()) else {
@@ -62,6 +63,7 @@ import Upscaling
             preferredOutputURL: url.renamed { "\($0) Upscaled" },
             outputSize: outputSize,
             outputBitRate: bitrate,
+            outputBitRateScaleFactor: bitrateScalingFactor,
             creator: ProcessInfo.processInfo.processName
         )
 
